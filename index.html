@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SkySet Generator</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #111;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    input[type="text"] {
+      padding: 12px;
+      font-size: 16px;
+      width: 500px;
+      border-radius: 6px;
+      border: none;
+    }
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      margin-left: 12px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #status {
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <div>
+    <input id="prompt" type="text" placeholder="e.g. Show me the Moon, Dec 1st, 2023, Toronto, ON, 22:22, 1.0 FOV">
+    <button onclick="submitPrompt()">Generate</button>
+  </div>
+
+  <div id="status"></div>
+
+  <script>
+    async function submitPrompt() {
+      const prompt = document.getElementById('prompt').value;
+      const status = document.getElementById('status');
+      status.textContent = "⏳ Generating...";
+
+      try {
+        const response = await fetch("https://skysafari-ai-mcp-docker.onrender.com/generate_from_prompt", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ prompt: prompt, provider: "anthropic" })
+        });
+
+        const data = await response.json();
+
+        if (data.status === "success") {
+          const filename = data.filename;
+          const downloadUrl = `https://skysafari-ai-mcp-docker.onrender.com/download/${filename}?as_attachment=true`;
+
+          // Auto-download
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+
+          status.innerHTML = `✅ File ready: <code>${filename}</code><br><a href="${downloadUrl}">Click here if download didn’t start</a>`;
+        } else {
+          status.textContent = "❌ Error: " + (data.error || "Something went wrong.");
+        }
+      } catch (err) {
+        status.textContent = "❌ Network error: " + err.message;
+      }
+    }
+  </script>
+
+</body>
+</html>
